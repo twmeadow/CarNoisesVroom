@@ -2,6 +2,9 @@
 #include <MPU9255.h>   // Works fine for MPU-6500
 #include "driver/dac.h"
 #include <math.h>
+#include "FS.h"
+#include "SPIFFS.h"
+
 
 const int audioPin = 25;
 const int button = 27; 
@@ -20,6 +23,7 @@ unsigned long tPrev = 0;
 
 void setup() {
   Serial.begin(115200);
+  
   delay(100);
 
   Wire.begin(21, 22);
