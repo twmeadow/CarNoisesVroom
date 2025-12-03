@@ -4,6 +4,13 @@
 #include <math.h>
 #include "FS.h"
 #include "SPIFFS.h"
+#include "wav.h"
+
+#include <SPI.h>
+#include <SD.h>
+
+#define SD_CS 5
+File wavFile;
 
 
 const int audioPin = 25;
@@ -13,6 +20,8 @@ const int sampleRate = 4000; // samples per second
 const int freq = 100;      
 float phase = 0.0;
 unsigned long lastSample = 0;
+float defDelay = 500; 
+float del; 
 
 
 MPU9255 mpu;
@@ -40,14 +49,26 @@ void setup() {
 
   tPrev = millis();
 
-  
+  Serial.begin(115200);
+
+  SPI.begin(18, 19, 23, SD_CS);
+  if (!SD.begin(SD_CS, SPI, 1000000)) {
+    Serial.println("SD init failed");
+    return;
+  }
+
+  wavFile = SD.open("/aero_car_noise.wav");
+  if (!wavFile) {
+    Serial.println("Failed to open file");
+    return;
+  }
+  wavFile.seek(44);
+
 }
 
 void loop() {
   unsigned long tNow = millis();
   but = digitalRead(button);
-  
-
   mpu.read_acc();
   float ax = (mpu.ax / 16384.0) * 9.80665;  // m/s²
   float ay = (mpu.ay / 16384.0) * 9.80665;
@@ -75,8 +96,7 @@ if (but == LOW && but != butP) {
   ayNorm = sumAy / 20.0;
 
   //Serial.println("Velocity reset + normalization complete!");
-}
-
+  }
   ax = ax - axNorm; 
   ay = ay - ayNorm; 
 
@@ -91,15 +111,33 @@ if (but == LOW && but != butP) {
 
   float aMag = sqrt(ax * ax + ay * ay);
 
-  //Serial.print("ax, ay: ");
-  //Serial.print(ax); Serial.print(", ");
-  //Serial.print(ay);
-  //Serial.print("   Vx, Vy: ");
-  //Serial.print(vx); Serial.print(", ");
-  //Serial.println(vy);
+
   Serial.println(aMag, 4); 
 
-  int newTone = freq; 
+
+  if (!wavFile.available()) {
+    Serial.println("Done playing!");
+    wavFile.close();
+    while (1); // stop
+  }
+
+  // read one sample
+  uint8_t sample = wavFile.read();
+
+  // output to DAC pin 25 (0–255)
+  dacWrite(audioPin, sample);
+
+  // delay based on sample rate (example: 8kHz)
+  del = defDelay * aMag;
+
+  del = map(aMag, 0, 10, 200, 20.83);
+  delayMicroseconds(del); // 1 / 8000 sec = 125 µs // 20.83
+
+
+}
+
+/*
+int newTone = freq; 
   if (aMag !=0){ 
     newTone *= aMag;
   }
@@ -114,4 +152,14 @@ if (but == LOW && but != butP) {
     uint8_t val = 128 + 127 * sin(phase);
     dacWrite(audioPin, val);
   }
-}
+*/
+
+
+  //Serial.print("ax, ay: ");
+  //Serial.print(ax); Serial.print(", ");
+  //Serial.print(ay);
+  //Serial.print("   Vx, Vy: ");
+  //Serial.print(vx); Serial.print(", ");
+  //Serial.println(vy);
+
+  
