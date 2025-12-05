@@ -68,7 +68,7 @@ t = np.linspace(0, duration, int(fs * duration), endpoint=False)
 maxfreq = 0
 
 fl = [175, 250, 380, 410, 320, 20, 80, 100, 120, 200, 150]
-ml = [.6, 1, .6, .6, .4, .15, .15, .15, .15, .3, .5]  
+ml = [.6, 1, .6, .6, .4, .15, .15, .15, .15, .3, .5]  # <-- fixed to have 8 magnitudes
 
 # generate your signal
 signal = make_sine_sum(fl, ml, fs, t)
@@ -78,5 +78,4 @@ signal = make_sine_sum(fl, ml, fs, t)
 # FFT your synthesized signal
 signal = make_sine_sum(fl, ml, fs, t)
 sd.play(signal, fs)
-plotFFT(dataF)
 plotFFT(signal)
