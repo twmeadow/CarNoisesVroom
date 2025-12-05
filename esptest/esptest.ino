@@ -16,7 +16,7 @@ File wavFile;
 const int audioPin = 25;
 const int button = 27; 
 bool but, butP; 
-const int sampleRate = 4000; // samples per second
+const int sampleRate = 7000; // samples per second
 const int freq = 100;      
 float phase = 0.0;
 unsigned long lastSample = 0;
@@ -110,11 +110,29 @@ if (but == LOW && but != butP) {
   vy += ay * dt;
 
   float aMag = sqrt(ax * ax + ay * ay);
+  float vMag = sqrt(vx * vx + vy * vy);
 
 
-  Serial.println(aMag, 4); 
+  Serial.println(vMag, 4); 
 
 
+
+
+  // delay based on sample rate (example: 8kHz)
+  //del = defDelay * aMag;
+  phase += 0.5f;        // base pitch increment
+  if (phase >= 2 * M_PI) phase -= 2 * M_PI;
+
+  del = map(aMag, 0, 10, 200, 1.83);
+  uint8_t sample = 128 + 100 * sinf(phase);
+  dacWrite(audioPin, sample);
+
+
+  delayMicroseconds(del); // 1 / 8000 sec = 125 µs // 20.83
+
+}
+
+/*
   if (!wavFile.available()) {
     Serial.println("Done playing!");
     wavFile.close();
@@ -125,19 +143,15 @@ if (but == LOW && but != butP) {
   uint8_t sample = wavFile.read();
 
   // output to DAC pin 25 (0–255)
-  dacWrite(audioPin, sample);
+  dacWrite(audioPin, .5 * sample);
 
   // delay based on sample rate (example: 8kHz)
-  del = defDelay * aMag;
+  //del = defDelay * aMag;
 
-  del = map(aMag, 0, 10, 200, 20.83);
-  delayMicroseconds(del); // 1 / 8000 sec = 125 µs // 20.83
+  del = map(aMag, 0, 50, 200, 10.83);
+  delayMicroseconds(1); // 1 / 8000 sec = 125 µs // 20.83
 
-
-}
-
-/*
-int newTone = freq; 
+    int newTone = freq; 
   if (aMag !=0){ 
     newTone *= aMag;
   }
@@ -146,12 +160,17 @@ int newTone = freq;
                   // 1 kHz
   unsigned long nowMicros = micros();
   if (nowMicros - lastSample >= (1000000 / sampleRate)) {
-    lastSample = nowMicros;
-    phase += 2 * M_PI * newTone / sampleRate;
-    if (phase >= 2 * M_PI) phase -= 2 * M_PI;
-    uint8_t val = 128 + 127 * sin(phase);
-    dacWrite(audioPin, val);
+      lastSample = nowMicros;
+
+      phase += 2 * M_PI * newTone / sampleRate;
+      if (phase >= 2 * M_PI) phase -= 2 * M_PI;
+
+      uint8_t val = 128 + 100 * sinf(phase);   // reduce amplitude for headroom
+      uint8_t unclip = map(val, 0, 255, 0, 125);
+      dacWrite(audioPin, val / 4);                 // correct DAC range
   }
+
+
 */
 
 
